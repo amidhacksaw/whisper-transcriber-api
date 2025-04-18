@@ -10,7 +10,6 @@ from datetime import datetime
 app = Flask(__name__)
 CORS(app)
 
-# 環境變數
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 allowed_passwords = os.environ.get("ALLOWED_PASSWORDS", "").split(",")
 admin_password = os.environ.get("ADMIN_PASSWORD", "")
@@ -18,7 +17,6 @@ admin_password = os.environ.get("ADMIN_PASSWORD", "")
 LOG_JSON = "logs.json"
 LOG_CSV = "logs.csv"
 
-# 初始化 log 檔案
 if not os.path.exists(LOG_JSON):
     with open(LOG_JSON, "w") as f:
         json.dump([], f)
@@ -85,10 +83,10 @@ def transcribe():
         if os.path.exists(audio_path + ".srt"):
             os.remove(audio_path + ".srt")
 
-@app.route("/admin", methods=["GET"])
-def admin():
-    auth = request.args.get("auth")
-    if auth != admin_password:
+@app.route("/admin-auth", methods=["POST"])
+def admin_auth():
+    pw = request.form.get("password")
+    if pw != admin_password:
         return "Unauthorized", 401
 
     with open(LOG_JSON, "r", encoding="utf-8") as f:
@@ -116,7 +114,10 @@ def admin():
             {table}
         </table>
         <br>
-        <a href="/download-csv?auth={auth}" download><button>下載 CSV</button></a>
+        <form method="GET" action="/download-csv">
+            <input type="hidden" name="auth" value="{pw}" />
+            <button type="submit">下載 CSV</button>
+        </form>
     </body>
     </html>
     """)
