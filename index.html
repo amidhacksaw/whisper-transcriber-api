@@ -53,6 +53,27 @@
       margin-top: 1.5rem;
       white-space: pre-wrap;
     }
+    progress {
+      width: 100%;
+      height: 20px;
+      margin-top: 1rem;
+    }
+    .admin-btn {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      font-size: 0.85rem;
+      background: #666;
+      border: none;
+      color: white;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      opacity: 0.5;
+      transition: opacity 0.3s ease;
+    }
+    .admin-btn:hover {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -68,21 +89,25 @@
     </select>
 
     <label>訪問密碼</label>
-    <input type="password" id="password" placeholder="輸入訪問密碼" />
+    <input type="password" id="password" placeholder="輸入使用者密碼" />
 
     <button onclick="transcribe()">開始轉換</button>
-
+    <progress id="progressBar" value="0" max="100" style="display:none;"></progress>
     <div id="result"></div>
   </div>
 
+  <button class="admin-btn" onclick="openAdminLogin()">⚙️ 管理介面</button>
+
   <script>
     const API_URL = "https://whisper-transcriber-api.onrender.com/transcribe";
+    const ADMIN_URL = "https://whisper-transcriber-api.onrender.com/admin-auth";
 
     async function transcribe() {
       const fileInput = document.getElementById("audioFile");
       const format = document.getElementById("format").value;
       const password = document.getElementById("password").value;
       const result = document.getElementById("result");
+      const progressBar = document.getElementById("progressBar");
 
       if (!fileInput.files[0]) {
         alert("請選擇音檔");
@@ -90,38 +115,68 @@
       }
 
       result.innerHTML = "處理中...";
+      progressBar.style.display = "block";
+      progressBar.value = 0;
 
       const formData = new FormData();
       formData.append("audio", fileInput.files[0]);
       formData.append("format", format);
       formData.append("password", password);
 
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          body: formData
-        });
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", API_URL);
 
-        if (!res.ok) {
-          const err = await res.json();
-          result.innerHTML = `<pre>❌ 錯誤：${err.error}</pre>`;
-          return;
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = (e.loaded / e.total) * 100;
+          progressBar.value = percent;
         }
+      };
 
-        if (format === "txt") {
-          const data = await res.json();
-          result.innerHTML = `<pre>${data.text}</pre>`;
+      xhr.onload = async () => {
+        progressBar.style.display = "none";
+        if (xhr.status === 200) {
+          if (format === "txt") {
+            const res = JSON.parse(xhr.responseText);
+            result.innerHTML = `<pre>${res.text}</pre>`;
+          } else {
+            const blob = xhr.response;
+            const downloadLink = document.createElement("a");
+            downloadLink.href = window.URL.createObjectURL(blob);
+            downloadLink.download = "result.srt";
+            downloadLink.click();
+            result.innerHTML = "✅ 字幕檔已下載。";
+          }
         } else {
-          const blob = await res.blob();
-          const downloadLink = document.createElement("a");
-          downloadLink.href = window.URL.createObjectURL(blob);
-          downloadLink.download = "result.srt";
-          downloadLink.click();
-          result.innerHTML = "✅ 字幕檔已下載。";
+          const err = JSON.parse(xhr.responseText);
+          result.innerHTML = `<pre>❌ 錯誤：${err.error}</pre>`;
         }
-      } catch (e) {
-        result.innerHTML = `<pre>❌ 發生錯誤：${e.message}</pre>`;
-      }
+      };
+
+      xhr.responseType = format === "srt" ? "blob" : "text";
+      xhr.send(formData);
+    }
+
+    function openAdminLogin() {
+      const pw = prompt("請輸入管理密碼：");
+      if (!pw) return;
+      const form = new FormData();
+      form.append("password", pw);
+
+      fetch(ADMIN_URL, {
+        method: "POST",
+        body: form
+      }).then(async res => {
+        if (res.ok) {
+          const html = await res.text();
+          const w = window.open("", "_blank");
+          w.document.open();
+          w.document.write(html);
+          w.document.close();
+        } else {
+          alert("❌ 密碼錯誤，無法進入管理介面！");
+        }
+      });
     }
   </script>
 </body>
