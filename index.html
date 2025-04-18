@@ -20,6 +20,18 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       max-width: 500px;
       width: 100%;
+      display: none;
+    }
+    #login {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
     }
     h1 {
       font-size: 1.8rem;
@@ -72,29 +84,16 @@
     .admin-btn:hover {
       opacity: 1;
     }
-    #adminModal {
-      display: none;
-      position: fixed;
-      z-index: 999;
-      left: 0; top: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.3);
-      justify-content: center;
-      align-items: center;
-    }
-    .modal-content {
-      background: white;
-      padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      max-width: 300px;
-      width: 90%;
-    }
-    .modal-content input {
-      margin-top: 1rem;
-    }
   </style>
 </head>
 <body>
+  <div id="login">
+    <h1>請輸入訪問密碼</h1>
+    <input type="password" id="loginPassword" placeholder="輸入密碼" />
+    <button onclick="verifyPassword()">登入</button>
+    <div id="loginError" style="color:red; margin-top: 1rem;"></div>
+  </div>
+
   <div class="card">
     <h1>Whisper 語音轉文字</h1>
     <label>音檔上傳</label>
@@ -106,27 +105,52 @@
       <option value="srt">字幕檔（.srt）</option>
     </select>
 
-    <label>訪問密碼</label>
-    <input type="password" id="password" placeholder="輸入使用者密碼" />
-
+    <input type="hidden" id="password" />
     <button onclick="transcribe()">開始轉換</button>
     <progress id="progressBar" value="0" max="100" style="display:none;"></progress>
     <div id="result"></div>
   </div>
 
-  <button class="admin-btn" onclick="showAdminModal()">⚙️</button>
-
-  <div id="adminModal">
-    <div class="modal-content">
-      <label for="adminInput">請輸入管理密碼：</label>
-      <input type="password" id="adminInput" placeholder="管理密碼" />
-      <button onclick="submitAdmin()">登入</button>
-    </div>
-  </div>
+  <button class="admin-btn" onclick="openAdminLogin()">⚙️</button>
 
   <script>
     const API_URL = "https://whisper-transcriber-api.onrender.com/transcribe";
     const ADMIN_URL = "https://whisper-transcriber-api.onrender.com/admin-auth";
+
+    window.onload = () => {
+      const savedPass = sessionStorage.getItem("password");
+      if (savedPass) {
+        document.getElementById("password").value = savedPass;
+        document.querySelector(".card").style.display = "block";
+        document.getElementById("login").style.display = "none";
+      }
+    }
+
+    function verifyPassword() {
+      const pw = document.getElementById("loginPassword").value;
+      if (!pw) return;
+
+      const testData = new FormData();
+      testData.append("password", pw);
+      testData.append("format", "txt");
+      testData.append("audio", new Blob());
+
+      fetch(API_URL, { method: "POST", body: testData })
+        .then(res => res.json().then(d => ({ status: res.status, body: d })))
+        .then(({ status, body }) => {
+          if (status === 400 && body.error.includes("No audio")) {
+            sessionStorage.setItem("password", pw);
+            document.getElementById("password").value = pw;
+            document.querySelector(".card").style.display = "block";
+            document.getElementById("login").style.display = "none";
+          } else {
+            document.getElementById("loginError").textContent = "密碼錯誤，請再試一次。";
+          }
+        })
+        .catch(() => {
+          document.getElementById("loginError").textContent = "發生錯誤，請稍後再試。";
+        });
+    }
 
     async function transcribe() {
       const fileInput = document.getElementById("audioFile");
@@ -183,12 +207,9 @@
       xhr.send(formData);
     }
 
-    function showAdminModal() {
-      document.getElementById("adminModal").style.display = "flex";
-    }
-
-    function submitAdmin() {
-      const pw = document.getElementById("adminInput").value;
+    function openAdminLogin() {
+      const pw = prompt("請輸入管理密碼：");
+      if (!pw) return;
       const form = new FormData();
       form.append("password", pw);
 
@@ -196,7 +217,6 @@
         method: "POST",
         body: form
       }).then(async res => {
-        document.getElementById("adminModal").style.display = "none";
         if (res.ok) {
           const html = await res.text();
           const w = window.open("", "_blank");
