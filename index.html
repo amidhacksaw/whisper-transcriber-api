@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whisper 語音轉文字工具</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 500px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 1.5rem;
+      padding: 0.7rem 1.5rem;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    pre {
+      background: #eee;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1.5rem;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Whisper 語音轉文字</h1>
+    <label>音檔上傳</label>
+    <input type="file" id="audioFile" accept="audio/*" />
+
+    <label>輸出格式</label>
+    <select id="format">
+      <option value="txt">純文字（.txt）</option>
+      <option value="srt">字幕檔（.srt）</option>
+    </select>
+
+    <label>訪問密碼</label>
+    <input type="password" id="password" placeholder="輸入訪問密碼" />
+
+    <button onclick="transcribe()">開始轉換</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const API_URL = "https://whisper-transcriber-api.onrender.com/transcribe";
+
+    async function transcribe() {
+      const fileInput = document.getElementById("audioFile");
+      const format = document.getElementById("format").value;
+      const password = document.getElementById("password").value;
+      const result = document.getElementById("result");
+
+      if (!fileInput.files[0]) {
+        alert("請選擇音檔");
+        return;
+      }
+
+      result.innerHTML = "處理中...";
+
+      const formData = new FormData();
+      formData.append("audio", fileInput.files[0]);
+      formData.append("format", format);
+      formData.append("password", password);
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          result.innerHTML = `<pre>❌ 錯誤：${err.error}</pre>`;
+          return;
+        }
+
+        if (format === "txt") {
+          const data = await res.json();
+          result.innerHTML = `<pre>${data.text}</pre>`;
+        } else {
+          const blob = await res.blob();
+          const downloadLink = document.createElement("a");
+          downloadLink.href = window.URL.createObjectURL(blob);
+          downloadLink.download = "result.srt";
+          downloadLink.click();
+          result.innerHTML = "✅ 字幕檔已下載。";
+        }
+      } catch (e) {
+        result.innerHTML = `<pre>❌ 發生錯誤：${e.message}</pre>`;
+      }
+    }
+  </script>
+</body>
+</html>
