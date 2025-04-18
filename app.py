@@ -1,34 +1,33 @@
 from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 import openai
 import tempfile
 import os
 
 app = Flask(__name__)
+CORS(app)  # 啟用 CORS，允許跨網域存取
 
 # 從 Render 的環境變數讀取 OpenAI API 金鑰與 App 密碼
 openai.api_key = os.environ.get("OPENAI_API_KEY")
-app_password = os.environ.get("APP_PASSWORD", "")  # 可在 Render 設定環境變數
+app_password = os.environ.get("APP_PASSWORD", "")
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
     if "audio" not in request.files:
         return jsonify({"error": "No audio file uploaded."}), 400
 
-    # 密碼驗證
     password = request.form.get("password")
     if password != app_password:
         return jsonify({"error": "Unauthorized"}), 401
 
-    output_format = request.form.get("format", "txt")  # 預設為 txt
+    output_format = request.form.get("format", "txt")
     audio_file = request.files["audio"]
 
-    # 將上傳音檔存為暫存檔
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
         audio_path = tmp.name
         audio_file.save(audio_path)
 
     try:
-        # 呼叫 OpenAI Whisper API
         transcript = openai.Audio.transcribe(
             model="whisper-1",
             file=open(audio_path, "rb"),
