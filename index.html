@@ -54,6 +54,11 @@
       height: 20px;
       margin-top: 1rem;
     }
+    #progressPercent {
+      text-align: right;
+      font-size: 0.85rem;
+      color: #555;
+    }
     .admin-btn {
       position: fixed;
       bottom: 10px;
@@ -125,7 +130,7 @@
     <input type="hidden" id="password" />
     <button onclick="transcribe()">開始轉換</button>
     <progress id="progressBar" value="0" max="100" style="display:none;"></progress>
-    <div id="progressPercent" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
+    <div id="progressPercent"></div>
     <div id="result"></div>
   </div>
 
@@ -134,7 +139,7 @@
       <label for="adminInput">請輸入管理密碼：</label>
       <input type="password" id="adminInput" placeholder="管理密碼" />
       <button onclick="submitAdmin()">登入</button>
-      <button onclick="closeAdminModal()">返回</button>
+      <button onclick="closeAdmin()">返回</button>
     </div>
   </div>
 
@@ -159,7 +164,15 @@
         document.getElementById("start").classList.remove("visible");
         document.getElementById("main").classList.add("visible");
       }
-    }
+
+      document.getElementById("loginPassword").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") verifyPassword();
+      });
+
+      document.getElementById("adminInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") submitAdmin();
+      });
+    };
 
     function verifyPassword() {
       const pw = document.getElementById("loginPassword").value;
@@ -212,9 +225,9 @@
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
-          const percent = Math.floor((e.loaded / e.total) * 100);
+          const percent = Math.round((e.loaded / e.total) * 100);
           progressBar.value = percent;
-          progressPercent.textContent = `${percent}%`;
+          progressPercent.textContent = percent + "%";
         }
       };
 
@@ -225,11 +238,12 @@
           if (format === "txt") {
             const res = JSON.parse(xhr.responseText);
             const blob = new Blob([res.text], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "result.txt";
+            link.href = url;
+            link.download = "transcription.txt";
             link.click();
-            result.innerHTML = "✅ 純文字檔已下載。";
+            result.innerHTML = "✅ 文字檔已下載。";
           } else {
             const blob = xhr.response;
             const downloadLink = document.createElement("a");
@@ -249,11 +263,9 @@
     }
 
     function showAdminModal() {
-      document.getElementById("adminModal").style.display = "flex";
-    }
-
-    function closeAdminModal() {
-      document.getElementById("adminModal").style.display = "none";
+      const modal = document.getElementById("adminModal");
+      modal.style.display = "flex";
+      document.getElementById("adminInput").value = "";
     }
 
     function submitAdmin() {
@@ -265,7 +277,8 @@
         method: "POST",
         body: form
       }).then(async res => {
-        closeAdminModal();
+        document.getElementById("adminModal").style.display = "none";
+        document.getElementById("adminInput").value = "";
         if (res.ok) {
           const html = await res.text();
           document.getElementById("adminPanel").style.display = "flex";
@@ -278,6 +291,8 @@
 
     function closeAdmin() {
       document.getElementById("adminPanel").style.display = "none";
+      document.getElementById("adminModal").style.display = "none";
+      document.getElementById("adminInput").value = "";
     }
   </script>
 </body>
