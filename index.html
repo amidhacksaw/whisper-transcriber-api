@@ -34,6 +34,27 @@
       margin-top: 1rem;
       white-space: pre-wrap;
     }
+    #adminModal, #adminPanel {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.3);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      max-width: 600px;
+      width: 90%;
+      overflow: auto;
+    }
+    .modal-content input {
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -63,9 +84,28 @@
     <div id="result"></div>
   </div>
 
+  <div id="adminModal">
+    <div class="modal-content">
+      <label for="adminInput">請輸入管理密碼：</label>
+      <input type="password" id="adminInput" placeholder="管理密碼" />
+      <button onclick="submitAdmin()">登入</button>
+      <button onclick="closeAdminModal()" style="margin-left: 1rem; background: #ccc; color: #333;">返回</button>
+    </div>
+  </div>
+
+  <div id="adminPanel">
+    <div class="modal-content" id="adminContent">
+      <button onclick="closeAdmin()">返回</button>
+      <div id="adminData"></div>
+    </div>
+  </div>
+
+  <button class="admin-btn" onclick="showAdminModal()">⚙️</button>
+
   <script>
     const API_URL = "https://whisper-transcriber-api.onrender.com/transcribe";
     const VERIFY_URL = "https://whisper-transcriber-api.onrender.com/verify-password";
+    const ADMIN_URL = "https://whisper-transcriber-api.onrender.com/admin-auth";
 
     window.onload = () => {
       const savedPass = sessionStorage.getItem("password");
@@ -164,6 +204,38 @@
 
       xhr.responseType = format === "srt" ? "blob" : "text";
       xhr.send(formData);
+    }
+
+    function showAdminModal() {
+      document.getElementById("adminModal").style.display = "flex";
+    }
+
+    function closeAdminModal() {
+      document.getElementById("adminModal").style.display = "none";
+    }
+
+    function submitAdmin() {
+      const pw = document.getElementById("adminInput").value;
+      const form = new FormData();
+      form.append("password", pw);
+
+      fetch(ADMIN_URL, {
+        method: "POST",
+        body: form
+      }).then(async res => {
+        document.getElementById("adminModal").style.display = "none";
+        if (res.ok) {
+          const html = await res.text();
+          document.getElementById("adminPanel").style.display = "flex";
+          document.getElementById("adminData").innerHTML = html;
+        } else {
+          alert("❌ 密碼錯誤，無法進入管理介面！");
+        }
+      });
+    }
+
+    function closeAdmin() {
+      document.getElementById("adminPanel").style.display = "none";
     }
   </script>
 </body>
