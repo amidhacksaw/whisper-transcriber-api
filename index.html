@@ -24,6 +24,36 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     .visible { display: block; }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 1.5rem;
+      padding: 0.7rem 1.5rem;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    progress {
+      width: 100%;
+      height: 20px;
+      margin-top: 1rem;
+    }
     #progressPercent {
       margin-top: 0.5rem;
       font-size: 0.9rem;
@@ -42,11 +72,28 @@
   </style>
 </head>
 <body>
-  <!-- 略過 body 主體不變 -->
+  <div id="main" class="section visible">
+    <h1>Whisper 語音轉文字</h1>
+
+    <label for="audioFile">音檔上傳</label>
+    <input type="file" id="audioFile" accept="audio/*" />
+
+    <label for="format">輸出格式</label>
+    <select id="format">
+      <option value="txt">純文字（.txt）</option>
+      <option value="srt">字幕檔（.srt）</option>
+    </select>
+
+    <input type="hidden" id="password" value="1234" />
+    <button onclick="transcribe()">開始轉換</button>
+
+    <progress id="progressBar" value="0" max="100" style="display:none;"></progress>
+    <div id="progressPercent"></div>
+    <div id="result"></div>
+  </div>
 
   <script>
     const API_URL = "https://whisper-transcriber-api.onrender.com/transcribe";
-    const VERIFY_URL = "https://whisper-transcriber-api.onrender.com/verify-password";
 
     function transcribe() {
       const fileInput = document.getElementById("audioFile");
