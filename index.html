@@ -115,6 +115,7 @@
 
   <script>
     const API_URL = "https://whisper-transcriber-api.onrender.com/transcribe";
+    const VERIFY_URL = "https://whisper-transcriber-api.onrender.com/verify-password";
     const ADMIN_URL = "https://whisper-transcriber-api.onrender.com/admin-auth";
 
     window.onload = () => {
@@ -130,26 +131,24 @@
       const pw = document.getElementById("loginPassword").value;
       if (!pw) return;
 
-      const testData = new FormData();
-      testData.append("password", pw);
-      testData.append("format", "txt");
-      testData.append("audio", new Blob());
+      const form = new FormData();
+      form.append("password", pw);
 
-      fetch(API_URL, { method: "POST", body: testData })
-        .then(res => res.json().then(d => ({ status: res.status, body: d })))
-        .then(({ status, body }) => {
-          if (status === 400 && body.error.includes("No audio")) {
-            sessionStorage.setItem("password", pw);
-            document.getElementById("password").value = pw;
-            document.querySelector(".card").style.display = "block";
-            document.getElementById("login").style.display = "none";
-          } else {
-            document.getElementById("loginError").textContent = "密碼錯誤，請再試一次。";
-          }
-        })
-        .catch(() => {
-          document.getElementById("loginError").textContent = "發生錯誤，請稍後再試。";
-        });
+      fetch(VERIFY_URL, {
+        method: "POST",
+        body: form
+      }).then(res => {
+        if (res.ok) {
+          sessionStorage.setItem("password", pw);
+          document.getElementById("password").value = pw;
+          document.querySelector(".card").style.display = "block";
+          document.getElementById("login").style.display = "none";
+        } else {
+          document.getElementById("loginError").textContent = "密碼錯誤，請再試一次。";
+        }
+      }).catch(() => {
+        document.getElementById("loginError").textContent = "無法驗證，請稍後再試。";
+      });
     }
 
     async function transcribe() {
