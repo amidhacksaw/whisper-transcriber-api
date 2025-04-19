@@ -3,174 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Whisper 語音轉文字工具</title>
+  <title>Whisper 測試頁</title>
   <style>
     body {
-      font-family: "Segoe UI", sans-serif;
+      font-family: sans-serif;
       background: #f4f4f4;
       margin: 0;
       padding: 2rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      text-align: center;
     }
-    .section {
-      display: none;
-      max-width: 600px;
-      width: 100%;
+    .box {
       background: white;
+      max-width: 500px;
+      margin: auto;
       padding: 2rem;
       border-radius: 12px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    .visible { display: block; }
-    h1 {
-      font-size: 1.8rem;
-      margin-bottom: 1rem;
-    }
-    label {
-      display: block;
-      margin-top: 1rem;
-      font-weight: bold;
-    }
-    input, select {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-    button {
-      margin-top: 1.5rem;
-      padding: 0.7rem 1.5rem;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    progress {
-      width: 100%;
-      height: 20px;
-      margin-top: 1rem;
-    }
-    #progressPercent {
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-      color: #555;
-      display: none;
-    }
-    #result {
-      margin-top: 1rem;
-      white-space: pre-wrap;
-      background: #fff5f5;
-      border-left: 4px solid #e74c3c;
-      padding: 0.75rem 1rem;
-      border-radius: 6px;
-      color: #c0392b;
-    }
   </style>
 </head>
 <body>
-  <div id="main" class="section visible">
-    <h1>Whisper 語音轉文字</h1>
-
-    <label for="audioFile">音檔上傳</label>
-    <input type="file" id="audioFile" accept="audio/*" />
-
-    <label for="format">輸出格式</label>
-    <select id="format">
-      <option value="txt">純文字（.txt）</option>
-      <option value="srt">字幕檔（.srt）</option>
-    </select>
-
-    <input type="hidden" id="password" value="1234" />
-    <button onclick="transcribe()">開始轉換</button>
-
-    <progress id="progressBar" value="0" max="100" style="display:none;"></progress>
-    <div id="progressPercent"></div>
-    <div id="result"></div>
+  <div class="box">
+    <h1>✅ Whisper 頁面正常顯示</h1>
+    <p>這是一個暫時測試頁，用來確認 GitHub Pages 正常運作。</p>
+    <p>如果你看到這段，就表示部署沒問題 🎉</p>
   </div>
-
-  <script>
-    const API_URL = "https://whisper-transcriber-api.onrender.com/transcribe";
-
-    function transcribe() {
-      const fileInput = document.getElementById("audioFile");
-      const format = document.getElementById("format").value;
-      const password = document.getElementById("password").value;
-      const result = document.getElementById("result");
-      const progressBar = document.getElementById("progressBar");
-      const percentText = document.getElementById("progressPercent");
-
-      const file = fileInput.files[0];
-      if (!file) {
-        result.textContent = "❌ 請選擇音檔";
-        return;
-      }
-      if (file.size > 25 * 1024 * 1024) {
-        result.textContent = "❌ 錯誤：音檔太大，請勿超過 25MB。";
-        return;
-      }
-
-      result.textContent = "處理中...";
-      progressBar.style.display = "block";
-      percentText.style.display = "block";
-      progressBar.value = 0;
-      percentText.textContent = "0%";
-
-      const formData = new FormData();
-      formData.append("audio", file);
-      formData.append("format", format);
-      formData.append("password", password);
-
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", API_URL);
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          progressBar.value = percent;
-          percentText.textContent = `${percent}%`;
-        }
-      };
-
-      xhr.onload = () => {
-        progressBar.style.display = "none";
-        percentText.style.display = "none";
-        if (xhr.status === 200) {
-          if (format === "txt") {
-            const res = JSON.parse(xhr.responseText);
-            result.innerHTML = `<pre>${res.text}</pre>`;
-          } else {
-            const blob = xhr.response;
-            const downloadLink = document.createElement("a");
-            downloadLink.href = window.URL.createObjectURL(blob);
-            downloadLink.download = "result.srt";
-            downloadLink.click();
-            result.textContent = "✅ 字幕檔已下載。";
-          }
-        } else {
-          try {
-            const err = JSON.parse(xhr.responseText);
-            const msg = err?.error?.message || xhr.statusText;
-
-            if (xhr.status === 413 || msg.includes("Maximum content size")) {
-              result.textContent = "❌ 錯誤：音檔超過限制（25MB），請使用較小檔案。";
-            } else if (msg.includes("Invalid file format")) {
-              result.textContent = "❌ 錯誤：不支援的音檔格式，請使用 mp3、m4a、wav、flac。";
-            } else {
-              result.textContent = `❌ 錯誤：${msg}`;
-            }
-          } catch {
-            result.textContent = "❌ 發生未知錯誤，請稍後再試。";
-          }
-        }
-      };
-
-      xhr.responseType = format === "srt" ? "blob" : "text";
-      xhr.send(formData);
-    }
-  </script>
 </body>
 </html>
