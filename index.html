@@ -54,6 +54,12 @@
       height: 20px;
       margin-top: 1rem;
     }
+    #progressPercent {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #555;
+      display: none;
+    }
     .admin-btn {
       position: fixed;
       bottom: 10px;
@@ -100,6 +106,15 @@
       padding: 0.5rem;
       text-align: left;
     }
+    #result {
+      margin-top: 1rem;
+      white-space: pre-wrap;
+      background: #fff5f5;
+      border-left: 4px solid #e74c3c;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      color: #c0392b;
+    }
   </style>
 </head>
 <body>
@@ -125,6 +140,7 @@
     <input type="hidden" id="password" />
     <button onclick="transcribe()">開始轉換</button>
     <progress id="progressBar" value="0" max="100" style="display:none;"></progress>
+    <div id="progressPercent"></div>
     <div id="result"></div>
   </div>
 
@@ -188,11 +204,11 @@
             document.getElementById("start").classList.remove("visible");
             document.getElementById("main").classList.add("visible");
           } else {
-            document.getElementById("loginError").textContent = "密碼錯誤，請再試一次。";
+            document.getElementById("result").textContent = "❌ 密碼錯誤，請再試一次。";
           }
         })
         .catch(() => {
-          document.getElementById("loginError").textContent = "無法驗證，請稍後再試。";
+          document.getElementById("result").textContent = "❌ 無法驗證，請稍後再試。";
         });
     }
 
@@ -202,15 +218,18 @@
       const password = document.getElementById("password").value;
       const result = document.getElementById("result");
       const progressBar = document.getElementById("progressBar");
+      const percentText = document.getElementById("progressPercent");
 
       if (!fileInput.files[0]) {
-        alert("請選擇音檔");
+        result.textContent = "❌ 請選擇音檔";
         return;
       }
 
-      result.innerHTML = "處理中...";
+      result.textContent = "處理中...";
       progressBar.style.display = "block";
+      percentText.style.display = "block";
       progressBar.value = 0;
+      percentText.textContent = "0%";
 
       const formData = new FormData();
       formData.append("audio", fileInput.files[0]);
@@ -222,12 +241,16 @@
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
-          progressBar.value = (e.loaded / e.total) * 100;
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressBar.value = percent;
+          percentText.textContent = `${percent}%`;
         }
       };
 
       xhr.onload = () => {
         progressBar.style.display = "none";
+        percentText.style.display = "none";
+
         if (xhr.status === 200) {
           if (format === "txt") {
             const res = JSON.parse(xhr.responseText);
@@ -238,11 +261,19 @@
             downloadLink.href = window.URL.createObjectURL(blob);
             downloadLink.download = "result.srt";
             downloadLink.click();
-            result.innerHTML = "✅ 字幕檔已下載。";
+            result.textContent = "✅ 字幕檔已下載。";
           }
         } else {
-          const err = JSON.parse(xhr.responseText);
-          result.innerHTML = `<pre>❌ 錯誤：${err.error}</pre>`;
+          try {
+            const err = JSON.parse(xhr.responseText);
+            if (err.error.includes("Invalid file format")) {
+              result.textContent = "❌ 錯誤：不支援的音檔格式，請上傳 mp3、m4a、wav、flac 等音檔。";
+            } else {
+              result.textContent = `❌ 錯誤：${err.error}`;
+            }
+          } catch {
+            result.textContent = "❌ 發生未知錯誤，請稍後再試。";
+          }
         }
       };
 
