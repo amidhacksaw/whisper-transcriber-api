@@ -8,31 +8,22 @@
     body {
       font-family: "Segoe UI", sans-serif;
       background: #f4f4f4;
+      margin: 0;
+      padding: 2rem;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 2rem;
     }
-    .card {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 500px;
-      width: 100%;
+    .section {
       display: none;
-    }
-    #login {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      max-width: 600px;
+      width: 100%;
       background: white;
       padding: 2rem;
       border-radius: 12px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 400px;
-      width: 100%;
     }
+    .visible { display: block; }
     h1 {
       font-size: 1.8rem;
       margin-bottom: 1rem;
@@ -58,13 +49,6 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    pre {
-      background: #eee;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-top: 1.5rem;
-      white-space: pre-wrap;
-    }
     progress {
       width: 100%;
       height: 20px;
@@ -84,7 +68,7 @@
     .admin-btn:hover {
       opacity: 1;
     }
-    #adminModal {
+    #adminModal, #adminPanel {
       display: none;
       position: fixed;
       z-index: 999;
@@ -98,24 +82,37 @@
       padding: 2rem;
       border-radius: 10px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      max-width: 300px;
+      max-width: 600px;
       width: 90%;
+      overflow: auto;
     }
     .modal-content input {
       margin-top: 1rem;
     }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 0.5rem;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
-  <div id="login">
-    <h1>請輸入訪問密碼</h1>
-    <input type="password" id="loginPassword" placeholder="輸入密碼" />
-    <button onclick="verifyPassword()">登入</button>
+  <div id="start" class="section visible">
+    <h1>Whisper 語音轉文字</h1>
+    <p>請輸入訪問密碼以開始使用</p>
+    <input type="password" id="loginPassword" placeholder="訪問密碼" />
+    <button onclick="verifyPassword()">進入</button>
     <div id="loginError" style="color:red; margin-top: 1rem;"></div>
   </div>
 
-  <div class="card">
-    <h1>Whisper 語音轉文字</h1>
+  <div id="main" class="section">
+    <h1>轉換中心</h1>
     <label>音檔上傳</label>
     <input type="file" id="audioFile" accept="audio/*" />
 
@@ -131,8 +128,6 @@
     <div id="result"></div>
   </div>
 
-  <button class="admin-btn" onclick="showAdminModal()">⚙️</button>
-
   <div id="adminModal">
     <div class="modal-content">
       <label for="adminInput">請輸入管理密碼：</label>
@@ -140,6 +135,15 @@
       <button onclick="submitAdmin()">登入</button>
     </div>
   </div>
+
+  <div id="adminPanel">
+    <div class="modal-content" id="adminContent">
+      <button onclick="closeAdmin()">返回</button>
+      <div id="adminData"></div>
+    </div>
+  </div>
+
+  <button class="admin-btn" onclick="showAdminModal()">⚙️</button>
 
   <script>
     const API_URL = "https://whisper-transcriber-api.onrender.com/transcribe";
@@ -150,8 +154,8 @@
       const savedPass = sessionStorage.getItem("password");
       if (savedPass) {
         document.getElementById("password").value = savedPass;
-        document.querySelector(".card").style.display = "block";
-        document.getElementById("login").style.display = "none";
+        document.getElementById("start").classList.remove("visible");
+        document.getElementById("main").classList.add("visible");
       }
     }
 
@@ -162,24 +166,23 @@
       const form = new FormData();
       form.append("password", pw);
 
-      fetch(VERIFY_URL, {
-        method: "POST",
-        body: form
-      }).then(res => {
-        if (res.ok) {
-          sessionStorage.setItem("password", pw);
-          document.getElementById("password").value = pw;
-          document.querySelector(".card").style.display = "block";
-          document.getElementById("login").style.display = "none";
-        } else {
-          document.getElementById("loginError").textContent = "密碼錯誤，請再試一次。";
-        }
-      }).catch(() => {
-        document.getElementById("loginError").textContent = "無法驗證，請稍後再試。";
-      });
+      fetch(VERIFY_URL, { method: "POST", body: form })
+        .then(res => {
+          if (res.ok) {
+            sessionStorage.setItem("password", pw);
+            document.getElementById("password").value = pw;
+            document.getElementById("start").classList.remove("visible");
+            document.getElementById("main").classList.add("visible");
+          } else {
+            document.getElementById("loginError").textContent = "密碼錯誤，請再試一次。";
+          }
+        })
+        .catch(() => {
+          document.getElementById("loginError").textContent = "無法驗證，請稍後再試。";
+        });
     }
 
-    async function transcribe() {
+    function transcribe() {
       const fileInput = document.getElementById("audioFile");
       const format = document.getElementById("format").value;
       const password = document.getElementById("password").value;
@@ -205,12 +208,11 @@
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
-          const percent = (e.loaded / e.total) * 100;
-          progressBar.value = percent;
+          progressBar.value = (e.loaded / e.total) * 100;
         }
       };
 
-      xhr.onload = async () => {
+      xhr.onload = () => {
         progressBar.style.display = "none";
         if (xhr.status === 200) {
           if (format === "txt") {
@@ -239,28 +241,28 @@
     }
 
     function submitAdmin() {
-  const pw = document.getElementById("adminInput").value;
-  const form = new FormData();
-  form.append("password", pw);
+      const pw = document.getElementById("adminInput").value;
+      const form = new FormData();
+      form.append("password", pw);
 
-  const newWindow = window.open(); // 🔓 使用者點擊時立即開啟
-
-  fetch(ADMIN_URL, {
-    method: "POST",
-    body: form
-  }).then(async res => {
-    document.getElementById("adminModal").style.display = "none";
-    if (res.ok) {
-      const html = await res.text();
-      newWindow.document.open();
-      newWindow.document.write(html);
-      newWindow.document.close();
-    } else {
-      newWindow.close();
-      alert("❌ 密碼錯誤，無法進入管理介面！");
+      fetch(ADMIN_URL, {
+        method: "POST",
+        body: form
+      }).then(async res => {
+        document.getElementById("adminModal").style.display = "none";
+        if (res.ok) {
+          const html = await res.text();
+          document.getElementById("adminPanel").style.display = "flex";
+          document.getElementById("adminData").innerHTML = html;
+        } else {
+          alert("❌ 密碼錯誤，無法進入管理介面！");
+        }
+      });
     }
-  });
-}
+
+    function closeAdmin() {
+      document.getElementById("adminPanel").style.display = "none";
+    }
   </script>
 </body>
 </html>
