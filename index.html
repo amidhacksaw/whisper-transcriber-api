@@ -15,6 +15,7 @@
       align-items: center;
     }
     .section {
+      display: none;
       max-width: 600px;
       width: 100%;
       background: white;
@@ -22,6 +23,7 @@
       border-radius: 12px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
+    .visible { display: block; }
     h1 {
       font-size: 2rem;
       margin-bottom: 1.5rem;
@@ -89,12 +91,18 @@
   </style>
 </head>
 <body>
-  <div class="section">
-    <h1>轉換中心</h1>
+  <div id="start" class="section visible">
+    <h1>Whisper 語音轉文字</h1>
+    <p>請輸入訪問密碼以開始使用</p>
+    <input type="password" id="loginPassword" placeholder="訪問密碼" />
+    <button onclick="verifyPassword()">進入</button>
+    <div id="loginError" style="color:red; margin-top: 1rem;"></div>
+  </div>
 
+  <div id="main" class="section">
+    <h1>轉換中心</h1>
     <label for="audioFile">音檔上傳</label>
     <input type="file" id="audioFile" accept="audio/*" />
-
     <div class="hint">⚠️ 建議使用 .mp3 或 .wav 格式，避免發生格式錯誤。若使用 .m4a，建議先轉檔後再上傳。</div>
 
     <label for="format">輸出格式</label>
@@ -138,7 +146,16 @@
       const savedPass = sessionStorage.getItem("password");
       if (savedPass) {
         document.getElementById("password")?.setAttribute("value", savedPass);
+        document.getElementById("start").classList.remove("visible");
+        document.getElementById("main").classList.add("visible");
       }
+
+      document.getElementById("loginPassword").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          verifyPassword();
+        }
+      });
 
       document.getElementById("adminInput").addEventListener("keydown", function (e) {
         if (e.key === "Enter") {
@@ -147,6 +164,29 @@
         }
       });
     };
+
+    function verifyPassword() {
+      const pw = document.getElementById("loginPassword").value;
+      if (!pw) return;
+
+      const form = new FormData();
+      form.append("password", pw);
+
+      fetch(VERIFY_URL, { method: "POST", body: form })
+        .then(res => {
+          if (res.ok) {
+            sessionStorage.setItem("password", pw);
+            document.getElementById("password")?.setAttribute("value", pw);
+            document.getElementById("start").classList.remove("visible");
+            document.getElementById("main").classList.add("visible");
+          } else {
+            document.getElementById("loginError").textContent = "密碼錯誤，請再試一次。";
+          }
+        })
+        .catch(() => {
+          document.getElementById("loginError").textContent = "無法驗證，請稍後再試。";
+        });
+    }
 
     function transcribe() {
       const fileInput = document.getElementById("audioFile");
@@ -188,7 +228,13 @@
         if (xhr.status === 200) {
           if (format === "txt") {
             const res = JSON.parse(xhr.responseText);
-            result.innerHTML = `<pre>${res.text}</pre>`;
+            const blob = new Blob([res.text], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "transcription.txt";
+            link.click();
+            result.innerHTML = "✅ 文字檔已下載。";
           } else {
             const blob = xhr.response;
             const downloadLink = document.createElement("a");
