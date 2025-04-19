@@ -239,26 +239,28 @@
     }
 
     function submitAdmin() {
-      const pw = document.getElementById("adminInput").value;
-      const form = new FormData();
-      form.append("password", pw);
+  const pw = document.getElementById("adminInput").value;
+  const form = new FormData();
+  form.append("password", pw);
 
-      fetch(ADMIN_URL, {
-        method: "POST",
-        body: form
-      }).then(async res => {
-        document.getElementById("adminModal").style.display = "none";
-        if (res.ok) {
-          const html = await res.text();
-          const w = window.open("", "_blank");
-          w.document.open();
-          w.document.write(html);
-          w.document.close();
-        } else {
-          alert("❌ 密碼錯誤，無法進入管理介面！");
-        }
-      });
+  const newWindow = window.open(); // 🔓 使用者點擊時立即開啟
+
+  fetch(ADMIN_URL, {
+    method: "POST",
+    body: form
+  }).then(async res => {
+    document.getElementById("adminModal").style.display = "none";
+    if (res.ok) {
+      const html = await res.text();
+      newWindow.document.open();
+      newWindow.document.write(html);
+      newWindow.document.close();
+    } else {
+      newWindow.close();
+      alert("❌ 密碼錯誤，無法進入管理介面！");
     }
+  });
+}
   </script>
 </body>
 </html>
