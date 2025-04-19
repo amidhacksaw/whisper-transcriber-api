@@ -106,7 +106,7 @@
   <div id="start" class="section visible">
     <h1>Whisper 語音轉文字</h1>
     <p>請輸入訪問密碼以開始使用</p>
-    <input type="password" id="loginPassword" placeholder="訪問密碼" />
+    <input type="password" id="loginPassword" placeholder="訪問密碼" autocomplete="off" />
     <button onclick="verifyPassword()">進入</button>
     <div id="loginError" style="color:red; margin-top: 1rem;"></div>
   </div>
@@ -131,7 +131,7 @@
   <div id="adminModal">
     <div class="modal-content">
       <label for="adminInput">請輸入管理密碼：</label>
-      <input type="password" id="adminInput" placeholder="管理密碼" />
+      <input type="password" id="adminInput" placeholder="管理密碼" autocomplete="off" />
       <button onclick="submitAdmin()">登入</button>
     </div>
   </div>
@@ -151,22 +151,27 @@
     const ADMIN_URL = "https://whisper-transcriber-api.onrender.com/admin-auth";
 
     window.onload = () => {
-  const savedPass = sessionStorage.getItem("password");
-  if (savedPass) {
-    document.getElementById("password").value = savedPass;
-    document.getElementById("start").classList.remove("visible");
-    document.getElementById("main").classList.add("visible");
-  }
+      const savedPass = sessionStorage.getItem("password");
+      if (savedPass) {
+        document.getElementById("password").value = savedPass;
+        document.getElementById("start").classList.remove("visible");
+        document.getElementById("main").classList.add("visible");
+      }
 
-  // ✅ 新增這段！
-  const loginInput = document.getElementById("loginPassword");
-  loginInput.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-      e.preventDefault(); // 避免預設行為（有些瀏覽器會提交）
-      verifyPassword();
+      document.getElementById("loginPassword").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          verifyPassword();
+        }
+      });
+
+      document.getElementById("adminInput").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          submitAdmin();
+        }
+      });
     }
-  });
-}
 
     function verifyPassword() {
       const pw = document.getElementById("loginPassword").value;
@@ -246,6 +251,7 @@
     }
 
     function showAdminModal() {
+      document.getElementById("adminInput").value = "";
       document.getElementById("adminModal").style.display = "flex";
     }
 
