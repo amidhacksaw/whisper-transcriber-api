@@ -25,6 +25,13 @@ if not os.path.exists(LOG_CSV):
         writer = csv.writer(f)
         writer.writerow(["user", "filename", "format", "timestamp", "status"])
 
+@app.route("/verify-password", methods=["POST"])
+def verify_password():
+    pw = request.form.get("password")
+    if pw in allowed_passwords:
+        return "OK", 200
+    return "Unauthorized", 401
+
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
     if "audio" not in request.files:
