@@ -78,6 +78,7 @@
       align-items: center;
     }
     .modal-content {
+      position: relative;
       background: white;
       padding: 2rem;
       border-radius: 10px;
@@ -88,6 +89,16 @@
     }
     .modal-content input {
       margin-top: 1rem;
+    }
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      color: #888;
+      cursor: pointer;
     }
     table {
       width: 100%;
@@ -130,6 +141,7 @@
 
   <div id="adminModal">
     <div class="modal-content">
+      <button class="modal-close" onclick="closeAdminModal()">✕</button>
       <label for="adminInput">請輸入管理密碼：</label>
       <input type="password" id="adminInput" placeholder="管理密碼" />
       <button onclick="submitAdmin()">登入</button>
@@ -245,6 +257,10 @@
 
     function showAdminModal() {
       document.getElementById("adminModal").style.display = "flex";
+    }
+
+    function closeAdminModal() {
+      document.getElementById("adminModal").style.display = "none";
     }
 
     function submitAdmin() {
