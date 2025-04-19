@@ -151,13 +151,22 @@
     const ADMIN_URL = "https://whisper-transcriber-api.onrender.com/admin-auth";
 
     window.onload = () => {
-      const savedPass = sessionStorage.getItem("password");
-      if (savedPass) {
-        document.getElementById("password").value = savedPass;
-        document.getElementById("start").classList.remove("visible");
-        document.getElementById("main").classList.add("visible");
-      }
+  const savedPass = sessionStorage.getItem("password");
+  if (savedPass) {
+    document.getElementById("password").value = savedPass;
+    document.getElementById("start").classList.remove("visible");
+    document.getElementById("main").classList.add("visible");
+  }
+
+  // ✅ 新增這段！
+  const loginInput = document.getElementById("loginPassword");
+  loginInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault(); // 避免預設行為（有些瀏覽器會提交）
+      verifyPassword();
     }
+  });
+}
 
     function verifyPassword() {
       const pw = document.getElementById("loginPassword").value;
